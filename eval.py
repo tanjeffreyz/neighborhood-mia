@@ -15,6 +15,7 @@ y_true = np.concatenate([zeros, ones])
 
 fpr, tpr, thresholds = roc_curve(y_true, y_score, pos_label=1, drop_intermediate=False)
 
+sns.lineplot(x=[0, 1], y=[0, 1], color='black')
 sns.lineplot(x=fpr, y=tpr, errorbar=None)
 plt.xlim(0.0, 1.0)
 plt.ylim(0.0, 1.0)
