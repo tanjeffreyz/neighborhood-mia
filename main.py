@@ -1,7 +1,7 @@
 import argparse
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, RobertaTokenizer, RobertaForMaskedLM
-from utils import generate_neighbours_alt
+from utils import generate_neighbors, generate_neighbours_alt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, choices=['ag_news'], default='ag_news')
@@ -30,6 +30,12 @@ search_model = search_model.to('cuda')
 
 # Perform the attack
 for data in dataset['train']:
+    from time import time
     text = data['text']
-    print(generate_neighbours_alt(text, search_tokenizer, search_model, embedder))
+    start = time()
+    generate_neighbors(text, search_tokenizer, search_model, embedder)
+    print(time() - start)
+    start = time()
+    generate_neighbours_alt(text, search_tokenizer, search_model, embedder)
+    print(time() - start)
     exit(0)

@@ -1,9 +1,65 @@
 import torch
 from heapq import nlargest
 
-def generate_neighbors(text, search_tokenizer, search_model):
+def generate_neighbors(text, search_tokenizer, search_model, embedder, dropout=0.7, k=5, n=50):
+    """
+    For TEXT, generates a neighborhood of single-token replacements, considering the best K token replacements 
+    at each position in the sequence and returning the top N neighboring sequences.
+    """
+
     tokenized = search_tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors='pt').input_ids.to('cuda')
-    print(tokenized.shape)
+
+    seq_len = tokenized.shape[1]
+    candidates = []         # Candidate tokens
+    scores = []             # Candidate scores
+    trg_indices = []        # Target indices associated with each candidate
+    for target_index in range(1, seq_len):
+        target_token = tokenized[:, target_index:target_index+1]
+        
+        # Apply dropout only to the target token embedding in the sequence
+        embedding = embedder(tokenized)
+        before = embedding[:, :target_index, :]
+        dropped = torch.nn.functional.dropout(embedding[:, target_index:target_index+1, :], p=dropout)
+        after = embedding[:, target_index+1:, :]
+        embedding = torch.cat([before, dropped, after], dim=1)
+
+        # Get model's predicted posterior distributions over all positions in the sequence
+        probs = torch.softmax(search_model(inputs_embeds=embedding).logits, dim=2)
+        original_prob = torch.gather(probs[:, target_index, :], 1, target_token)
+
+        # Find the K most probable token replacements, not including the target token
+        # Find top K+1 first because target could still appear as a candidate
+        cand_probs, cands = torch.topk(probs[:, target_index, :], k + 1, dim=1)
+
+        # Compute candidate scores to rank replacements
+        denominator = 1 - original_prob
+        denominator[denominator == 0] = 1E-6
+        cand_scores = cand_probs / denominator
+        cand_scores[cands == target_token] = float('-inf')
+
+        candidates.append(cands)
+        scores.append(cand_scores)
+        trg_indices.append(torch.ones_like(cands) * target_index)
+    
+    # Stitch candidate information together
+    candidates = torch.concat(candidates, dim=1)
+    scores = torch.concat(scores, dim=1)
+    trg_indices = torch.concat(trg_indices, dim=1)
+
+    # Find top N candidates in each batch
+    _, top_indices = torch.topk(scores, n, dim=1)
+    top_candidates = torch.gather(candidates, 1, top_indices)
+    top_trg_indices = torch.gather(trg_indices, 1, top_indices)
+
+    # Generate and return the neighborhood of sequences
+    neighborhood = []
+    for i in range(top_candidates.shape[1]):
+        cand = top_candidates[0, i]
+        index = top_trg_indices[0, i]
+        neighbor = torch.clone(tokenized)
+        neighbor[0, index] = cand
+        print(search_tokenizer.batch_decode(neighbor)[0])
+    
 
 
 def generate_neighbours_alt(text, search_tokenizer, search_model, embedder):
@@ -55,11 +111,13 @@ def generate_neighbours_alt(text, search_tokenizer, search_model, embedder):
 
 
     texts = []
+    print()
     for single in highest_scored:
         alt = text_tokenized
         target_token_index, cand = single
         alt = torch.cat((alt[:,:target_token_index], torch.LongTensor([cand]).unsqueeze(0).to('cuda'), alt[:,target_token_index+1:]), dim=1)
         alt_text = search_tokenizer.batch_decode(alt)[0]
+        print(alt_text)
         texts.append((alt_text, replacements[single]))
 
 
