@@ -2,7 +2,8 @@ import argparse
 import numpy as np
 from tqdm import tqdm
 from datasets import load_dataset
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, RobertaTokenizer, RobertaForMaskedLM
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, \
+    RobertaTokenizer, RobertaForMaskedLM, AutoTokenizer, AutoModelForSeq2SeqLM
 from utils import get_neighborhood_score
 
 parser = argparse.ArgumentParser()
@@ -13,9 +14,11 @@ args = parser.parse_args()
 
 if args.dataset == 'ag_news':
     dataset = load_dataset('ag_news')
-    target_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    target_model = GPT2LMHeadModel.from_pretrained('gpt2')
-    target_tokenizer.pad_token = target_tokenizer.eos_token
+    # target_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    # target_model = GPT2LMHeadModel.from_pretrained('gpt2')
+    # target_tokenizer.pad_token = target_tokenizer.eos_token
+    target_tokenizer = AutoTokenizer.from_pretrained("Kyle1668/ag-news-t5-large")
+    target_model = AutoModelForSeq2SeqLM.from_pretrained("Kyle1668/ag-news-t5-large")
 
 if args.search == 'bert':
     search_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
