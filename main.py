@@ -1,7 +1,7 @@
 import argparse
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, RobertaTokenizer, RobertaForMaskedLM
-from utils import 
+from utils import generate_neighbours_alt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, choices=['ag_news'], default='ag_news')
@@ -16,12 +16,20 @@ if args.dataset == 'ag_news':
 if args.search == 'bert':
     search_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     search_model = BertForMaskedLM.from_pretrained('bert-base-uncased')
+    embedder = search_model.bert.embeddings
 elif args.search == 'distilbert':
     search_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
     search_model = DistilBertForMaskedLM.from_pretrained('distilbert-base-uncased')
+    embedder = search_model.distilbert.embeddings
 elif args.search == 'roberta':
     search_tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
     search_model = RobertaForMaskedLM.from_pretrained('roberta-base')
+    embedder = search_model.roberta.embeddings
 
-train_set = dataset['train']
-print(next(iter(train_set)))
+search_model = search_model.to('cuda')
+
+# Perform the attack
+for data in dataset['train']:
+    text = data['text']
+    print(generate_neighbours_alt(text, search_tokenizer, search_model, embedder))
+    exit(0)
