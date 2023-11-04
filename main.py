@@ -1,17 +1,21 @@
 import argparse
+import numpy as np
+from tqdm import tqdm
 from datasets import load_dataset
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, RobertaTokenizer, RobertaForMaskedLM
-from utils import generate_neighbors, generate_neighbours_alt
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, RobertaTokenizer, RobertaForMaskedLM
+from utils import get_neighborhood_score
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, choices=['ag_news'], default='ag_news')
 parser.add_argument('--search', type=str, choices=['bert', 'distilbert', 'roberta'], default='bert')
+parser.add_argument('--fraction', type=float, default=0.05)
 args = parser.parse_args()
 
 if args.dataset == 'ag_news':
-    dataset = load_dataset("ag_news")
-    target_tokenizer = AutoTokenizer.from_pretrained("textattack/bert-base-uncased-ag-news")
-    target_model = AutoModelForSequenceClassification.from_pretrained("textattack/bert-base-uncased-ag-news")
+    dataset = load_dataset('ag_news')
+    target_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    target_model = GPT2LMHeadModel.from_pretrained('gpt2')
+    target_tokenizer.pad_token = target_tokenizer.eos_token
 
 if args.search == 'bert':
     search_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -26,16 +30,22 @@ elif args.search == 'roberta':
     search_model = RobertaForMaskedLM.from_pretrained('roberta-base')
     embedder = search_model.roberta.embeddings
 
+target_model = target_model.to('cuda')
 search_model = search_model.to('cuda')
 
-# Perform the attack
-for data in dataset['train']:
-    from time import time
-    text = data['text']
-    start = time()
-    generate_neighbors(text, search_tokenizer, search_model, embedder)
-    print(time() - start)
-    start = time()
-    generate_neighbours_alt(text, search_tokenizer, search_model, embedder)
-    print(time() - start)
-    exit(0)
+# Calculate and save neighborhood scores for both the training and test sets
+test_scores = []
+test_iter = iter(dataset['test'])
+for _ in tqdm(range(int(args.fraction * len(dataset['test'])))):
+    data = next(test_iter)
+    score = get_neighborhood_score(data['text'], target_tokenizer, target_model, search_tokenizer, search_model, embedder)
+    test_scores.append(score)
+np.save('scores/test_scores.npy', np.array(test_scores))
+
+train_scores = []
+train_iter = iter(dataset['train'])
+for _ in tqdm(range(int(args.fraction * len(dataset['train'])))):
+    data = next(train_iter)
+    score = get_neighborhood_score(data['text'], target_tokenizer, target_model, search_tokenizer, search_model, embedder)
+    train_scores.append(score)
+np.save('scores/train_scores.npy', np.array(train_scores))
