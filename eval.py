@@ -22,3 +22,7 @@ plt.ylim(0.0, 1.0)
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.savefig('results/roc_curve.png')
+
+for r in (0.0001, 0.001, 0.01):
+    index = len(fpr[fpr < r]) - 1
+    print(f'{tpr[index] * 100:.02f}% TPR at {r * 100:.02f}% FPR')

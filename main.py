@@ -39,7 +39,8 @@ search_model = search_model.to('cuda')
 # Calculate and save neighborhood scores for both the training and test sets
 test_scores = []
 test_iter = iter(dataset['test'])
-for _ in tqdm(range(int(args.fraction * len(dataset['test']))), desc='Test'):
+test_len = int(args.fraction * len(dataset['test']))
+for _ in tqdm(range(test_len), desc='Test'):
     data = next(test_iter)
     score = get_neighborhood_score(data['text'], data['label'], target_tokenizer, target_model, search_tokenizer, search_model, embedder)
     test_scores.append(score)
@@ -47,7 +48,8 @@ np.save('scores/test_scores.npy', np.array(test_scores))
 
 train_scores = []
 train_iter = iter(dataset['train'])
-for _ in tqdm(range(int(args.fraction * len(dataset['train']))), desc='Train'):
+train_len = int(args.fraction * len(dataset['train']))
+for _ in tqdm(range(train_len), desc='Train'):
     data = next(train_iter)
     score = get_neighborhood_score(data['text'], data['label'], target_tokenizer, target_model, search_tokenizer, search_model, embedder)
     train_scores.append(score)
