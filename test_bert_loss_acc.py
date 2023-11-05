@@ -14,13 +14,13 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 dataset = load_dataset("ag_news")
 
 # Take the test or validation split for evaluation
-test_dataset = dataset["test"]
-# test_dataset = dataset["train"]
+# test_dataset = dataset["test"]
+test_dataset = dataset["train"]
 
 # Predicting in batches to avoid memory issues
-batch_size = 32
+batch_size = 1
 # Use DataLoader for easier batch management
-test_dataloader = DataLoader(test_dataset.select(list(range(1000))), batch_size=batch_size, shuffle=False)
+test_dataloader = DataLoader(test_dataset.select(list(range(125))), batch_size=batch_size, shuffle=False)
 
 predictions = []
 true_labels = []

@@ -42,29 +42,29 @@ assert args.num_iters <= len(dataset['test']), 'Too many iterations'
 # Calculate and save neighborhood scores for both the training and test sets
 with torch.no_grad():
     test_scores = []
-    test_losses = []
+    test_loss = 0
     test_correct = 0
     test_iter = iter(dataset['test'])
     for _ in tqdm(range(args.num_iters), desc='Test'):
         data = next(test_iter)
         score, loss, correct = attack(data, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder)
         test_scores.append(score)
-        test_losses.append(loss)
+        test_loss += loss
         test_correct += correct
     np.save('scores/test_scores.npy', np.array(test_scores))
-    print(f'Validation loss: {sum(test_losses) / len(test_losses)}')
-    print(f'Validation accuracy: {test_correct / len(test_losses)}')
+    print(f'Validation loss: {test_loss / args.num_iters}')
+    print(f'Validation accuracy: {test_correct / args.num_iters}')
 
     train_scores = []
-    train_losses = []
+    train_loss = 0
     train_correct = 0
     train_iter = iter(dataset['train'])
     for _ in tqdm(range(args.num_iters), desc='Train'):
         data = next(train_iter)
         score, loss, correct = attack(data, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder)
         train_scores.append(score)
-        train_losses.append(loss)
+        train_loss += loss
         train_correct += correct
     np.save('scores/train_scores.npy', np.array(train_scores))
-    print(f'Training loss: {sum(train_losses) / len(train_losses)}')
-    print(f'Training accuracy: {train_correct / len(train_losses)}')
+    print(f'Training loss: {train_loss / args.num_iters}')
+    print(f'Training accuracy: {train_correct / args.num_iters}')

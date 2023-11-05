@@ -8,7 +8,7 @@ def generate_neighbors(text, search_tokenizer, search_model, search_embedder, p=
     at each position in the sequence and returning the top N neighboring sequences.
     """
 
-    tokenized = search_tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors='pt').input_ids.to('cuda')
+    tokenized = search_tokenizer(text, padding=True, truncation=True, return_tensors='pt').input_ids.to('cuda')
     dropout = torch.nn.Dropout(p)
 
     seq_len = tokenized.shape[1]
@@ -51,32 +51,31 @@ def generate_neighbors(text, search_tokenizer, search_model, search_embedder, p=
     return neighborhood
 
 
-def get_log_likelihood(text, label, tokenizer, model):
-    tokenized = tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors='pt').input_ids.to('cuda')
-    return model(tokenized, labels=torch.tensor([label]).to('cuda')).loss.item()
+def forward(text, label, tokenizer, model):
+    tokenized = tokenizer(text, padding=True, truncation=True, return_tensors='pt')
+    tokenized['labels'] = torch.tensor([label])
+    for k, v in tokenized.items():
+        tokenized[k] = v.to('cuda')
+    return model(**tokenized)
 
 
 def get_neighborhood_score(text, label, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder):
-    original_score = -get_log_likelihood(text, label, target_tokenizer, target_model)
+    original_output = forward(text, label, target_tokenizer, target_model)
+    original_score = -original_output.loss.item()
 
     # Compute log likelihood for each neighbor in the neighborhood
     neighbor_scores = []
     neighbors = generate_neighbors(text, search_tokenizer, search_model, search_embedder)
     for n in neighbors:
-        neighbor_scores.append(-get_log_likelihood(n, label, target_tokenizer, target_model))
+        neighbor_scores.append(-forward(n, label, target_tokenizer, target_model).loss.item())
     mean_neighbor_score = sum(neighbor_scores) / len(neighbor_scores)
 
-    return original_score - mean_neighbor_score
+    return original_score - mean_neighbor_score, original_output
 
 
 def attack(data, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder):
     text = data['text']
     label = data['label']
-    score = get_neighborhood_score(text, label, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder)
-
-    # Evaluate model
-    tokenized = target_tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors='pt').input_ids.to('cuda')
-    output = target_model(tokenized, labels=torch.tensor([label]).to('cuda'))
-    correct = int(torch.argmax(output.logits).item() == label)
-
-    return score, output.loss.item(), correct
+    score, original_output = get_neighborhood_score(text, label, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder)
+    correct = int(torch.argmax(original_output.logits).item() == label)
+    return score, original_output.loss.item(), correct
