@@ -1,7 +1,7 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_curve, roc_auc_score
 
 
 test_scores = np.load('scores/test_scores.npy')
@@ -26,3 +26,5 @@ plt.savefig('results/roc_curve.png')
 for r in (0.0001, 0.001, 0.01):
     index = len(fpr[fpr < r]) - 1
     print(f'{tpr[index] * 100:.02f}% TPR at {r * 100:.02f}% FPR')
+
+print(f'AUC: {roc_auc_score(y_true, y_score)}')

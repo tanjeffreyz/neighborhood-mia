@@ -3,23 +3,26 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from datasets import load_dataset
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, \
-    RobertaTokenizer, RobertaForMaskedLM, AutoTokenizer, AutoModelForSequenceClassification
+from transformers import BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, \
+    RobertaTokenizer, RobertaForMaskedLM, AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
 from utils import attack
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, choices=['ag_news'], default='ag_news')
+parser.add_argument('--model', type=str, choices=['gpt2', 'bert'], default='gpt2')
 parser.add_argument('--search', type=str, choices=['bert', 'distilbert', 'roberta'], default='bert')
 parser.add_argument('--num_iters', type=int, default=1_000)
 args = parser.parse_args()
 
-if args.dataset == 'ag_news':
-    dataset = load_dataset('ag_news')
-    # target_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    # target_model = GPT2LMHeadModel.from_pretrained('gpt2')
-    # target_tokenizer.pad_token = target_tokenizer.eos_token
-    target_tokenizer = AutoTokenizer.from_pretrained("fabriceyhc/bert-base-uncased-ag_news")
-    target_model = AutoModelForSequenceClassification.from_pretrained("fabriceyhc/bert-base-uncased-ag_news")
+dataset = load_dataset('ag_news')
+if args.model == 'bert':
+    tokenizer = AutoTokenizer.from_pretrained("fabriceyhc/bert-base-uncased-ag_news")
+    model = AutoModelForSequenceClassification.from_pretrained("fabriceyhc/bert-base-uncased-ag_news")
+    model.is_causal = False
+elif args.model == 'gpt2':
+    tokenizer = AutoTokenizer.from_pretrained("gpt2")
+    model = AutoModelForCausalLM.from_pretrained("DunnBC22/gpt2-Causal_Language_Model-AG_News")
+    tokenizer.pad_token = tokenizer.eos_token
+    model.is_causal = True
 
 if args.search == 'bert':
     search_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -34,7 +37,7 @@ elif args.search == 'roberta':
     search_model = RobertaForMaskedLM.from_pretrained('roberta-base')
     search_embedder = search_model.roberta.embeddings
 
-target_model = target_model.to('cuda')
+model = model.to('cuda')
 search_model = search_model.to('cuda')
 
 assert args.num_iters <= len(dataset['test']), 'Too many iterations'
@@ -47,7 +50,7 @@ with torch.no_grad():
     test_iter = iter(dataset['test'])
     for _ in tqdm(range(args.num_iters), desc='Test'):
         data = next(test_iter)
-        score, loss, correct = attack(data, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder)
+        score, loss, correct = attack(data, tokenizer, model, search_tokenizer, search_model, search_embedder)
         test_scores.append(score)
         test_loss += loss
         test_correct += correct
@@ -61,7 +64,7 @@ with torch.no_grad():
     train_iter = iter(dataset['train'])
     for _ in tqdm(range(args.num_iters), desc='Train'):
         data = next(train_iter)
-        score, loss, correct = attack(data, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder)
+        score, loss, correct = attack(data, tokenizer, model, search_tokenizer, search_model, search_embedder)
         train_scores.append(score)
         train_loss += loss
         train_correct += correct

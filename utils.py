@@ -53,7 +53,7 @@ def generate_neighbors(text, search_tokenizer, search_model, search_embedder, p=
 
 def forward(text, label, tokenizer, model):
     tokenized = tokenizer(text, padding=True, truncation=True, return_tensors='pt')
-    tokenized['labels'] = torch.tensor([label])
+    tokenized['labels'] = tokenized['input_ids'] if model.is_causal else torch.tensor([label])
     for k, v in tokenized.items():
         tokenized[k] = v.to('cuda')
     return model(**tokenized)
