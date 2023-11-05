@@ -9,7 +9,7 @@ from utils import get_neighborhood_score
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, choices=['ag_news'], default='ag_news')
 parser.add_argument('--search', type=str, choices=['bert', 'distilbert', 'roberta'], default='bert')
-parser.add_argument('--fraction', type=float, default=0.05)
+parser.add_argument('--fraction', type=float, default=0.1)
 args = parser.parse_args()
 
 if args.dataset == 'ag_news':
