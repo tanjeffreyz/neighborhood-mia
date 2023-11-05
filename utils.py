@@ -51,19 +51,19 @@ def generate_neighbors(text, search_tokenizer, search_model, embedder, p=0.7, k=
     return neighborhood
 
 
-def get_log_likelihood(text, tokenizer, model):
+def get_log_likelihood(text, label, tokenizer, model):
     tokenized = tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors='pt').input_ids.to('cuda')
-    return -model(tokenized, labels=tokenized).loss.item()
+    return -model(tokenized, labels=torch.tensor([label]).to('cuda')).loss.item()
 
 
-def get_neighborhood_score(text, target_tokenizer, target_model, search_tokenizer, search_model, embedder):
-    original_score = get_log_likelihood(text, target_tokenizer, target_model)
+def get_neighborhood_score(text, label, target_tokenizer, target_model, search_tokenizer, search_model, embedder):
+    original_score = get_log_likelihood(text, label, target_tokenizer, target_model)
 
     # Compute log likelihood for each neighbor in the neighborhood
     neighbor_scores = []
     neighbors = generate_neighbors(text, search_tokenizer, search_model, embedder)
     for n in neighbors:
-        neighbor_scores.append(get_log_likelihood(n, target_tokenizer, target_model))
+        neighbor_scores.append(get_log_likelihood(n, label, target_tokenizer, target_model))
     mean_neighbor_score = sum(neighbor_scores) / len(neighbor_scores)
 
     return original_score - mean_neighbor_score

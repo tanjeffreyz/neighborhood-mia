@@ -3,7 +3,7 @@ import numpy as np
 from tqdm import tqdm
 from datasets import load_dataset
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, \
-    RobertaTokenizer, RobertaForMaskedLM, AutoTokenizer, AutoModelForSeq2SeqLM
+    RobertaTokenizer, RobertaForMaskedLM, AutoTokenizer, AutoModelForSequenceClassification
 from utils import get_neighborhood_score
 
 parser = argparse.ArgumentParser()
@@ -17,8 +17,8 @@ if args.dataset == 'ag_news':
     # target_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
     # target_model = GPT2LMHeadModel.from_pretrained('gpt2')
     # target_tokenizer.pad_token = target_tokenizer.eos_token
-    target_tokenizer = AutoTokenizer.from_pretrained("Kyle1668/ag-news-t5-large")
-    target_model = AutoModelForSeq2SeqLM.from_pretrained("Kyle1668/ag-news-t5-large")
+    target_tokenizer = AutoTokenizer.from_pretrained("textattack/bert-base-uncased-ag-news")
+    target_model = AutoModelForSequenceClassification.from_pretrained("textattack/bert-base-uncased-ag-news")
 
 if args.search == 'bert':
     search_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -41,7 +41,7 @@ test_scores = []
 test_iter = iter(dataset['test'])
 for _ in tqdm(range(int(args.fraction * len(dataset['test']))), desc='Test'):
     data = next(test_iter)
-    score = get_neighborhood_score(data['text'], target_tokenizer, target_model, search_tokenizer, search_model, embedder)
+    score = get_neighborhood_score(data['text'], data['label'], target_tokenizer, target_model, search_tokenizer, search_model, embedder)
     test_scores.append(score)
 np.save('scores/test_scores.npy', np.array(test_scores))
 
@@ -49,6 +49,6 @@ train_scores = []
 train_iter = iter(dataset['train'])
 for _ in tqdm(range(int(args.fraction * len(dataset['train']))), desc='Train'):
     data = next(train_iter)
-    score = get_neighborhood_score(data['text'], target_tokenizer, target_model, search_tokenizer, search_model, embedder)
+    score = get_neighborhood_score(data['text'], data['label'], target_tokenizer, target_model, search_tokenizer, search_model, embedder)
     train_scores.append(score)
 np.save('scores/train_scores.npy', np.array(train_scores))
