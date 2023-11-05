@@ -70,10 +70,13 @@ def get_neighborhood_score(text, label, target_tokenizer, target_model, search_t
 
 
 def attack(data, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder):
-    score = get_neighborhood_score(data['text'], data['label'], target_tokenizer, target_model, search_tokenizer, search_model, search_embedder)
+    text = data['text']
+    label = data['label']
+    score = get_neighborhood_score(text, label, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder)
 
     # Evaluate model
-    tokenized = target_tokenizer(data['text'], padding=True, truncation=True, max_length=512, return_tensors='pt').input_ids.to('cuda')
-    output = target_model(tokenized, labels=torch.tensor([data['label']]).to('cuda'))
+    tokenized = target_tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors='pt').input_ids.to('cuda')
+    output = target_model(tokenized, labels=torch.tensor([label]).to('cuda'))
+    correct = int(torch.argmax(output.logits).item() == label)
 
-    return score, output.loss.item(), int(torch.argmax(output.logits).item() == data['label'])
+    return score, output.loss.item(), correct
