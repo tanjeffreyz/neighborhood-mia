@@ -56,7 +56,8 @@ with torch.no_grad():
         test_correct += correct
     np.save('scores/test_scores.npy', np.array(test_scores))
     print(f'Validation loss: {test_loss / args.num_iters}')
-    print(f'Validation accuracy: {test_correct / args.num_iters}')
+    if not model.is_causal:
+        print(f'Validation accuracy: {test_correct / args.num_iters}')
 
     train_scores = []
     train_loss = 0
@@ -70,4 +71,5 @@ with torch.no_grad():
         train_correct += correct
     np.save('scores/train_scores.npy', np.array(train_scores))
     print(f'Training loss: {train_loss / args.num_iters}')
-    print(f'Training accuracy: {train_correct / args.num_iters}')
+    if not model.is_causal:
+        print(f'Training accuracy: {train_correct / args.num_iters}')

@@ -1,4 +1,4 @@
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoModelForCausalLM
 from datasets import load_dataset, load_metric
 import numpy as np
 from tqdm.auto import tqdm
@@ -10,6 +10,10 @@ model_name = "fabriceyhc/bert-base-uncased-ag_news"
 model = AutoModelForSequenceClassification.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
+tokenizer = AutoTokenizer.from_pretrained("gpt2")
+tokenizer.pad_token = tokenizer.eos_token
+model = AutoModelForCausalLM.from_pretrained("DunnBC22/gpt2-Causal_Language_Model-AG_News")
+
 # Load the dataset
 dataset = load_dataset("ag_news")
 
@@ -18,9 +22,9 @@ dataset = load_dataset("ag_news")
 test_dataset = dataset["train"]
 
 # Predicting in batches to avoid memory issues
-batch_size = 1
+batch_size = 32
 # Use DataLoader for easier batch management
-test_dataloader = DataLoader(test_dataset.select(list(range(125))), batch_size=batch_size, shuffle=False)
+test_dataloader = DataLoader(test_dataset.select(list(range(1000))), batch_size=batch_size, shuffle=False)
 
 predictions = []
 true_labels = []
@@ -28,7 +32,7 @@ loss = 0
 total = 0
 for batch in tqdm(test_dataloader):
     tokenized_batch = tokenizer(batch['text'], padding=True, return_tensors='pt', truncation=True)
-    tokenized_batch['labels'] = batch['label']
+    tokenized_batch['labels'] = tokenized_batch['input_ids']
     # Place batch on the same device as the model
     # batch['input_ids']
     # batch = {k: torch.stack(v, dim=0).to(model.device) for k, v in batch.items() if k in ['input_ids', 'attention_mask', 'label', 'token_type_ids']}

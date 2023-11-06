@@ -61,16 +61,15 @@ def forward(text, label, tokenizer, model):
 
 def get_neighborhood_score(text, label, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder):
     original_output = forward(text, label, target_tokenizer, target_model)
-    original_score = -original_output.loss.item()
 
     # Compute log likelihood for each neighbor in the neighborhood
     neighbor_scores = []
     neighbors = generate_neighbors(text, search_tokenizer, search_model, search_embedder)
     for n in neighbors:
-        neighbor_scores.append(-forward(n, label, target_tokenizer, target_model).loss.item())
+        neighbor_scores.append(forward(n, label, target_tokenizer, target_model).loss.item())
     mean_neighbor_score = sum(neighbor_scores) / len(neighbor_scores)
 
-    return original_score - mean_neighbor_score, original_output
+    return original_output.loss.item() - mean_neighbor_score, original_output
 
 
 def attack(data, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder):
