@@ -66,6 +66,6 @@ def eval(name):
 
 # Calculate and save neighborhood scores for both the training and test sets
 train_scores = eval('train')
-np.save('scores/train_scores.npy', np.array(train_scores))
+np.save('results/train_scores.npy', np.array(train_scores))
 test_scores = eval('test')
-np.save('scores/test_scores.npy', np.array(test_scores))
+np.save('results/test_scores.npy', np.array(test_scores))

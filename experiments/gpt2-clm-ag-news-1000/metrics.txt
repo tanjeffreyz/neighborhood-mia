@@ -1,0 +1,4 @@
+0.70% TPR at 0.01% FPR
+0.70% TPR at 0.10% FPR
+3.80% TPR at 1.00% FPR
+AUC: 0.565644
