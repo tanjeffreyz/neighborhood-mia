@@ -5,7 +5,7 @@ from tqdm import tqdm
 from datasets import load_dataset
 from transformers import BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, \
     RobertaTokenizer, RobertaForMaskedLM, AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
-from utils import attack
+from utils import get_neighborhood_score, get_loss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=str, choices=['gpt2', 'bert'], default='gpt2')
@@ -17,12 +17,14 @@ dataset = load_dataset('ag_news')
 if args.model == 'bert':
     tokenizer = AutoTokenizer.from_pretrained("fabriceyhc/bert-base-uncased-ag_news")
     model = AutoModelForSequenceClassification.from_pretrained("fabriceyhc/bert-base-uncased-ag_news")
-    model.is_causal = False
+    causal = False
 elif args.model == 'gpt2':
+    # tokenizer = AutoTokenizer.from_pretrained("gpt2")
+    # model = AutoModelForCausalLM.from_pretrained("DunnBC22/gpt2-Causal_Language_Model-AG_News")
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
-    model = AutoModelForCausalLM.from_pretrained("DunnBC22/gpt2-Causal_Language_Model-AG_News")
+    model = AutoModelForCausalLM.from_pretrained("../models/checkpoint-17100")
     tokenizer.pad_token = tokenizer.eos_token
-    model.is_causal = True
+    causal = True
 
 if args.search == 'bert':
     search_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -38,38 +40,31 @@ elif args.search == 'roberta':
     search_embedder = search_model.roberta.embeddings
 
 model = model.to('cuda')
+model.eval()
 search_model = search_model.to('cuda')
+search_model.eval()
 
 assert args.num_iters <= len(dataset['test']), 'Too many iterations'
 
-# Calculate and save neighborhood scores for both the training and test sets
-with torch.no_grad():
-    test_scores = []
-    test_loss = 0
-    test_correct = 0
-    test_iter = iter(dataset['test'])
-    for _ in tqdm(range(args.num_iters), desc='Test'):
-        data = next(test_iter)
-        score, loss, correct = attack(data, tokenizer, model, search_tokenizer, search_model, search_embedder)
-        test_scores.append(score)
-        test_loss += loss
-        test_correct += correct
-    np.save('scores/test_scores.npy', np.array(test_scores))
-    print(f'Validation loss: {test_loss / args.num_iters}')
-    if not model.is_causal:
-        print(f'Validation accuracy: {test_correct / args.num_iters}')
 
-    train_scores = []
-    train_loss = 0
-    train_correct = 0
-    train_iter = iter(dataset['train'])
-    for _ in tqdm(range(args.num_iters), desc='Train'):
-        data = next(train_iter)
-        score, loss, correct = attack(data, tokenizer, model, search_tokenizer, search_model, search_embedder)
-        train_scores.append(score)
-        train_loss += loss
-        train_correct += correct
-    np.save('scores/train_scores.npy', np.array(train_scores))
-    print(f'Training loss: {train_loss / args.num_iters}')
-    if not model.is_causal:
-        print(f'Training accuracy: {train_correct / args.num_iters}')
+def eval(name):
+    loss = 0
+    scores = []
+    iterator = iter(dataset[name])
+    for _ in tqdm(range(args.num_iters), desc=name):
+        data = next(iterator)
+        text = data['text']
+        label = data['label']
+        with torch.no_grad():
+            loss += get_loss(text, label, tokenizer, model, causal=causal)
+            score = get_neighborhood_score(text, label, tokenizer, model, search_tokenizer, search_model, search_embedder, causal=causal)
+        scores.append(score)
+    print('Loss:', loss / args.num_iters)
+    return scores
+
+
+# Calculate and save neighborhood scores for both the training and test sets
+train_scores = eval('train')
+np.save('scores/train_scores.npy', np.array(train_scores))
+test_scores = eval('test')
+np.save('scores/test_scores.npy', np.array(test_scores))

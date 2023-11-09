@@ -51,30 +51,22 @@ def generate_neighbors(text, search_tokenizer, search_model, search_embedder, p=
     return neighborhood
 
 
-def forward(text, label, tokenizer, model):
+def get_loss(text, label, tokenizer, model, causal=False):
     tokenized = tokenizer(text, padding=True, truncation=True, return_tensors='pt')
-    tokenized['labels'] = tokenized['input_ids'] if model.is_causal else torch.tensor([label])
+    tokenized['labels'] = tokenized['input_ids'] if causal else torch.tensor([label])
     for k, v in tokenized.items():
         tokenized[k] = v.to('cuda')
-    return model(**tokenized)
+    return model(**tokenized).loss.item()
 
 
-def get_neighborhood_score(text, label, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder):
-    original_output = forward(text, label, target_tokenizer, target_model)
+def get_neighborhood_score(text, label, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder, causal=False):
+    original_score = get_loss(text, label, target_tokenizer, target_model, causal=causal)
 
     # Compute log likelihood for each neighbor in the neighborhood
     neighbor_scores = []
     neighbors = generate_neighbors(text, search_tokenizer, search_model, search_embedder)
     for n in neighbors:
-        neighbor_scores.append(forward(n, label, target_tokenizer, target_model).loss.item())
+        neighbor_scores.append(get_loss(n, label, target_tokenizer, target_model, causal=causal))
     mean_neighbor_score = sum(neighbor_scores) / len(neighbor_scores)
 
-    return original_output.loss.item() - mean_neighbor_score, original_output
-
-
-def attack(data, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder):
-    text = data['text']
-    label = data['label']
-    score, original_output = get_neighborhood_score(text, label, target_tokenizer, target_model, search_tokenizer, search_model, search_embedder)
-    correct = int(torch.argmax(original_output.logits).item() == label)
-    return score, original_output.loss.item(), correct
+    return original_score - mean_neighbor_score

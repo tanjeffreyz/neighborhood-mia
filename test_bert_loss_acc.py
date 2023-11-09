@@ -12,7 +12,8 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
 tokenizer.pad_token = tokenizer.eos_token
-model = AutoModelForCausalLM.from_pretrained("DunnBC22/gpt2-Causal_Language_Model-AG_News")
+# model = AutoModelForCausalLM.from_pretrained("DunnBC22/gpt2-Causal_Language_Model-AG_News")
+model = AutoModelForCausalLM.from_pretrained("../models/checkpoint-17100")
 
 # Load the dataset
 dataset = load_dataset("ag_news")
@@ -47,6 +48,7 @@ for batch in tqdm(test_dataloader):
     total += len(batch['label'])
 
 loss /= total
+print(f'Loss: {loss}')
 
 # Convert predictions to list of predicted labels
 predicted_labels = predictions
@@ -59,4 +61,3 @@ loss_metric = load_metric("glue", "sst2")  # There is no "loss" metric directly,
 # true_labels = np.array(test_dataset["label"])
 accuracy = accuracy_metric.compute(predictions=predicted_labels, references=true_labels)
 print(f'Accuracy: {accuracy}')
-print(f'Loss: {loss}')

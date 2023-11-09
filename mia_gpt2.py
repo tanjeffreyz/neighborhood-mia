@@ -82,11 +82,12 @@ clm_ds = tokenized_ds.map(
     # load_from_cache_file=False,
 )
 # clm_ds = tokenized_ds
-print(clm_ds["train"])
 print(clm_ds["test"])
+print(clm_ds["train"])
 
 model = (
-    AutoModelForCausalLM.from_pretrained("DunnBC22/gpt2-Causal_Language_Model-AG_News")
+    # AutoModelForCausalLM.from_pretrained("DunnBC22/gpt2-Causal_Language_Model-AG_News")
+    AutoModelForCausalLM.from_pretrained("../models/checkpoint-17100")
     ).to(DEVICE)
 model.is_causal = True          # [NEW] Necessary for util.generate_neighbors to work
 
