@@ -25,6 +25,10 @@ folder = os.path.join(
 if not os.path.isdir(folder):
     os.makedirs(folder)
 
+# Save configuration to text file
+with open(os.path.join(folder, 'config.txt'), 'w') as file:
+    file.write(str(args))
+
 dataset = load_dataset('ag_news').shuffle()
 if args.model == 'bert':
     tokenizer = AutoTokenizer.from_pretrained("fabriceyhc/bert-base-uncased-ag_news")

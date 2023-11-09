@@ -39,7 +39,7 @@ def plot_roc(folder, test_scores, train_scores):
     metrics = '\n'.join(data)
     print(metrics)
     with open(os.path.join(folder, 'metrics.txt'), 'w') as file:
-        file.write(metrics + '\n')
+        file.write(metrics)
 
 
 test_scores = np.load(os.path.join(args.folder, 'test_scores.npy'))

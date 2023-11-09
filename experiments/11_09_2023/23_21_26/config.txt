@@ -1,0 +1,1 @@
+Namespace(model='bert', search='bert', num_iters=1000, max_length=64)
