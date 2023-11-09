@@ -5,11 +5,14 @@ from sklearn.metrics import roc_curve, roc_auc_score
 
 
 def plot_roc(test_scores, train_scores):
-    zeros = np.zeros_like(test_scores)
-    ones = np.ones_like(train_scores)
+    # sklearn.metrics.roc_curve uses thresholds as bottom limits, so it checks whether `score > threshold`.
+    # However, from the paper, `score <= threshold` predicts training examples while `score > threshold` predicts test examples.
+    # Thus, the `pos_label` must be associated with the test examples, not the training examples.
+    ones = np.ones_like(test_scores)
+    zeros = np.zeros_like(train_scores)
 
     y_score = np.concatenate([test_scores, train_scores])
-    y_true = np.concatenate([zeros, ones])
+    y_true = np.concatenate([ones, zeros])
 
     fpr, tpr, _ = roc_curve(y_true, y_score, pos_label=1, drop_intermediate=False)
 

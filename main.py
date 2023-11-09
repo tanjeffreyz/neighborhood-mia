@@ -14,7 +14,7 @@ parser.add_argument('--num_iters', type=int, default=1_000)
 parser.add_argument('--max_length', type=int, default=64)
 args = parser.parse_args()
 
-dataset = load_dataset('ag_news')
+dataset = load_dataset('ag_news').shuffle()
 if args.model == 'bert':
     tokenizer = AutoTokenizer.from_pretrained("fabriceyhc/bert-base-uncased-ag_news")
     model = AutoModelForSequenceClassification.from_pretrained("fabriceyhc/bert-base-uncased-ag_news")
