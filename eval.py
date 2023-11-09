@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, roc_auc_score
 
 
+FOLDER = 'experiments/gpt2-clm-ag-news-1000'
+
+
 def plot_roc(folder, test_scores, train_scores):
     # sklearn.metrics.roc_curve uses thresholds as bottom limits, so it checks whether `score > threshold`.
     # However, from the paper, `score <= threshold` predicts training examples while `score > threshold` predicts test examples.
@@ -36,9 +39,6 @@ def plot_roc(folder, test_scores, train_scores):
         file.write(metrics + '\n')
 
 
-FOLDER = 'experiments/gpt2-clm-ag-news-1000'
-
 test_scores = np.load(os.path.join(FOLDER, 'test_scores.npy'))
 train_scores = np.load(os.path.join(FOLDER, 'train_scores.npy'))
-
 plot_roc(FOLDER, test_scores, train_scores)
