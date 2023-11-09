@@ -1,7 +1,9 @@
+import os
 import argparse
 import torch
 import numpy as np
 from tqdm import tqdm
+from datetime import datetime
 from datasets import load_dataset
 from transformers import BertTokenizer, BertForMaskedLM, DistilBertTokenizer, DistilBertForMaskedLM, \
     RobertaTokenizer, RobertaForMaskedLM, AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
@@ -13,6 +15,15 @@ parser.add_argument('--search', type=str, choices=['bert', 'distilbert', 'robert
 parser.add_argument('--num_iters', type=int, default=1_000)
 parser.add_argument('--max_length', type=int, default=64)
 args = parser.parse_args()
+
+now = datetime.now()
+folder = os.path.join(
+    'experiments',
+    now.strftime('%m_%d_%Y'),
+    now.strftime('%H_%M_%S')
+)
+if not os.path.isdir(folder):
+    os.makedirs(folder)
 
 dataset = load_dataset('ag_news').shuffle()
 if args.model == 'bert':
@@ -66,6 +77,6 @@ def eval(name):
 
 # Calculate and save neighborhood scores for both the training and test sets
 train_scores = eval('train')
-np.save('results/train_scores.npy', np.array(train_scores))
+np.save(os.path.join(folder, 'train_scores.npy'), np.array(train_scores))
 test_scores = eval('test')
-np.save('results/test_scores.npy', np.array(test_scores))
+np.save(os.path.join(folder, 'test_scores.npy'), np.array(test_scores))

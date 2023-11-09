@@ -1,11 +1,14 @@
 import os
+import argparse
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, roc_auc_score
 
 
-FOLDER = 'experiments/gpt2-clm-ag-news-1000'
+parser = argparse.ArgumentParser()
+parser.add_argument('folder', type=str)
+args = parser.parse_args()
 
 
 def plot_roc(folder, test_scores, train_scores):
@@ -39,6 +42,6 @@ def plot_roc(folder, test_scores, train_scores):
         file.write(metrics + '\n')
 
 
-test_scores = np.load(os.path.join(FOLDER, 'test_scores.npy'))
-train_scores = np.load(os.path.join(FOLDER, 'train_scores.npy'))
-plot_roc(FOLDER, test_scores, train_scores)
+test_scores = np.load(os.path.join(args.folder, 'test_scores.npy'))
+train_scores = np.load(os.path.join(args.folder, 'train_scores.npy'))
+plot_roc(args.folder, test_scores, train_scores)
