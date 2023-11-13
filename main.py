@@ -61,7 +61,8 @@ model.eval()
 search_model = search_model.to('cuda')
 search_model.eval()
 
-assert args.num_iters <= len(dataset['test']), 'Too many iterations'
+max_iters = len(dataset['test'])
+assert args.num_iters <= max_iters, f'Too many iterations, maximum {max_iters}'
 
 
 def eval(name):
