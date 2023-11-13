@@ -14,6 +14,7 @@ parser.add_argument('--model', type=str, choices=['gpt2', 'bert'], default='gpt2
 parser.add_argument('--search', type=str, choices=['bert', 'distilbert', 'roberta'], default='bert')
 parser.add_argument('--num_iters', type=int, default=1_000)
 parser.add_argument('--max_length', type=int, default=64)
+parser.add_argument('--mia_type', type=str, choices=['loss', 'neighbor'], default='neighbor')
 args = parser.parse_args()
 
 now = datetime.now()
@@ -72,8 +73,12 @@ def eval(name):
         text = data['text']
         label = data['label']
         with torch.no_grad():
-            loss += get_loss(text, label, tokenizer, model, args.max_length, causal=causal)
-            score = get_neighborhood_score(text, label, tokenizer, model, search_tokenizer, search_model, search_embedder, args.max_length, causal=causal)
+            l = get_loss(text, label, tokenizer, model, args.max_length, causal=causal)
+            if args.mia_type == 'loss':
+                score = l
+            elif args.mia_type == 'neighbor':
+                score = get_neighborhood_score(text, label, tokenizer, model, search_tokenizer, search_model, search_embedder, args.max_length, causal=causal)
+            loss += l
         scores.append(score)
     print('Loss:', loss / args.num_iters)
     return scores
